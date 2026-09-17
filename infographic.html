@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Specter — インフォグラフィック仕様書</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --void:#07080b; --void-2:#0d0f15; --mist:#161b23;
+    --line:rgba(255,255,255,.08); --ghost:#eef2f0; --fade:#7b828d; --fade-2:#454c57;
+    --spectral:#2fe7a8; --soft:rgba(47,231,168,.12); --sline:rgba(47,231,168,.34);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--void); color:var(--ghost);
+    font-family:"Inter",system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+    overflow-x:hidden; line-height:1.5;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+  .mono{font-family:"Space Mono",monospace}
+  .eyebrow{font:700 11px/1 "Space Mono";letter-spacing:.32em;color:var(--spectral);text-transform:uppercase;display:block;margin-bottom:16px}
+  h2{font:600 27px/1.2 "Space Grotesk";letter-spacing:-.01em;margin-bottom:10px}
+  .sec-sub{color:var(--fade);font-size:14.5px;max-width:46ch;margin-bottom:30px}
+  section{padding:64px 0;border-top:1px solid var(--line);position:relative}
+
+  /* reveal */
+  .rv{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,1,.36,1)}
+  .rv.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}}
+
+  /* ---------- HERO ---------- */
+  .hero{min-height:96vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:none;position:relative;padding:80px 22px}
+  #stars{position:absolute;inset:0;z-index:0;opacity:.7}
+  .hero-in{position:relative;z-index:1}
+  .ghostwrap{position:relative;width:150px;height:150px;margin:0 auto 30px}
+  #ghostfx{position:absolute;inset:-40px -90px -40px -10px;width:240px;height:230px}
+  .ghostwrap svg{position:relative;z-index:1;filter:drop-shadow(0 0 26px rgba(47,231,168,.25))}
+  .wordmark{font:700 64px/1 "Space Grotesk";letter-spacing:.04em}
+  .wordmark .o{color:var(--spectral);text-shadow:0 0 24px var(--spectral)}
+  .tagline{font:400 12px/1 "Space Mono";letter-spacing:.36em;color:var(--fade);text-transform:uppercase;margin-top:18px}
+  .concept{margin-top:30px;font:500 18px/1.6 "Inter";max-width:24ch}
+  .concept b{color:var(--spectral)}
+  .scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:1;font:400 10px/1 "Space Mono";letter-spacing:.3em;color:var(--fade-2);text-transform:uppercase}
+  .doc-tag{display:inline-block;margin-bottom:26px;padding:6px 14px;border:1px solid var(--sline);border-radius:999px;font:700 10px/1 "Space Mono";letter-spacing:.24em;color:var(--spectral);text-transform:uppercase}
+
+  /* ---------- lifespan spectrum ---------- */
+  .spectrum{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:8px}
+  .life{padding:9px 15px;border-radius:999px;border:1px solid var(--line);font:600 13px "Inter";white-space:nowrap;background:var(--void-2)}
+  .life.keep{border-color:var(--ghost);color:var(--ghost)}
+  .life.read{border-color:var(--sline);color:var(--spectral);background:var(--soft)}
+  .arrow{color:var(--fade-2);font-size:18px;margin:0 2px}
+  .ghosticon{margin-left:4px;opacity:.5}
+  .note{margin-top:22px;font-size:13px;color:var(--fade);display:flex;gap:9px;align-items:flex-start}
+  .note svg{flex:none;color:var(--spectral);margin-top:1px}
+
+  /* ---------- timeline ---------- */
+  .timeline{position:relative;margin-top:8px;padding-left:34px}
+  .timeline::before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--sline),rgba(47,231,168,.05))}
+  .step{position:relative;padding-bottom:34px}
+  .step:last-child{padding-bottom:0}
+  .step::before{content:"";position:absolute;left:-31px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--void);border:2px solid var(--spectral);box-shadow:0 0 12px rgba(47,231,168,.5)}
+  .step .ph{font:700 11px/1 "Space Mono";letter-spacing:.2em;color:var(--spectral);text-transform:uppercase}
+  .step h3{font:600 18px/1.3 "Space Grotesk";margin:7px 0 5px}
+  .step p{color:var(--fade);font-size:13.5px;max-width:42ch}
+
+  /* ---------- feature grid ---------- */
+  .grid{display:grid;grid-template-columns:1fr;gap:13px;margin-top:8px}
+  @media(min-width:560px){.grid{grid-template-columns:1fr 1fr}}
+  .card{background:var(--void-2);border:1px solid var(--line);border-radius:16px;padding:22px;position:relative;overflow:hidden}
+  .card .ic{width:40px;height:40px;border-radius:11px;background:var(--soft);display:grid;place-items:center;margin-bottom:14px}
+  .card .ic svg{width:21px;height:21px;color:var(--spectral)}
+  .card h3{font:600 16px/1.3 "Space Grotesk";margin-bottom:6px}
+  .card p{color:var(--fade);font-size:13px;line-height:1.55}
+
+  /* ---------- architecture ---------- */
+  .stack{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+  .layer{display:flex;align-items:center;gap:16px;background:var(--void-2);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .layer .tag{font:700 10px/1 "Space Mono";letter-spacing:.18em;color:var(--spectral);text-transform:uppercase;flex:none;width:78px}
+  .layer .body{flex:1}
+  .layer .body b{font:600 15px "Space Grotesk";display:block;margin-bottom:3px}
+  .layer .body span{color:var(--fade);font-size:12.5px}
+  .conn{height:18px;width:2px;background:var(--sline);margin:-6px 0 -6px 38px}
+
+  /* ---------- flow ---------- */
+  .flow{display:flex;align-items:stretch;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .fstep{flex:1;min-width:120px;background:var(--void-2);border:1px solid var(--line);border-radius:14px;padding:16px 14px;text-align:center}
+  .fstep .n{font:700 12px/1 "Space Mono";color:var(--spectral)}
+  .fstep b{display:block;font:600 14px "Space Grotesk";margin:9px 0 4px}
+  .fstep span{color:var(--fade);font-size:11.5px}
+
+  /* ---------- security ---------- */
+  .seclist{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+  .secitem{display:flex;gap:14px;align-items:flex-start;background:var(--void-2);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .secitem svg{flex:none;width:22px;height:22px;color:var(--spectral);margin-top:1px}
+  .secitem b{font:600 15px "Space Grotesk"}
+  .secitem p{color:var(--fade);font-size:13px;margin-top:3px}
+  .secitem.warn svg{color:#ffd27a}
+
+  /* ---------- stack badges ---------- */
+  .badges{display:flex;flex-wrap:wrap;gap:9px;margin-top:8px}
+  .badge{padding:8px 14px;border:1px solid var(--line);border-radius:10px;font:600 12.5px "Space Mono";color:var(--ghost);background:var(--void-2)}
+  .badge .d{color:var(--spectral)}
+
+  /* ---------- status ---------- */
+  .cols{display:grid;grid-template-columns:1fr;gap:16px;margin-top:8px}
+  @media(min-width:560px){.cols{grid-template-columns:1fr 1fr}}
+  .col{background:var(--void-2);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .col h3{font:700 11px/1 "Space Mono";letter-spacing:.2em;text-transform:uppercase;margin-bottom:16px}
+  .col.done h3{color:var(--spectral)}
+  .col.next h3{color:#ffd27a}
+  .col ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+  .col li{display:flex;gap:10px;font-size:13.5px;color:var(--ghost)}
+  .col li svg{flex:none;width:17px;height:17px;margin-top:1px}
+  .col.done li svg{color:var(--spectral)}
+  .col.next li svg{color:#ffd27a}
+  .col.next li{color:var(--fade)}
+
+  footer{text-align:center;padding:54px 22px calc(54px + env(safe-area-inset-bottom,0));border-top:1px solid var(--line);color:var(--fade-2)}
+  footer .gm{margin-bottom:14px}
+  footer .t{font:600 15px "Space Grotesk";color:var(--ghost);letter-spacing:.2em}
+  footer .s{font:400 11px/1.7 "Space Mono";letter-spacing:.1em;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <canvas id="stars"></canvas>
+  <div class="hero-in">
+    <span class="doc-tag">Infographic Spec · Phase 2</span>
+    <div class="ghostwrap">
+      <canvas id="ghostfx" width="480" height="460"></canvas>
+      <svg width="150" height="150" viewBox="0 0 32 32"><path fill="#eef2f0" d="M16 3c-6 0-10 4.6-10 11v13.2c0 1 0 1.8 1.1 1.3 1-.5 1.8-1.6 2.6-1.6.9 0 1.5 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.9 0 1.6 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.8 0 1.6 1.1 2.6 1.6 1.1.5 1.1-.3 1.1-1.3V14C26 7.6 22 3 16 3z"/><circle cx="12.4" cy="13.5" r="1.8" fill="#07080b"/><circle cx="19.6" cy="13.5" r="1.8" fill="#07080b"/></svg>
+    </div>
+    <div class="wordmark">GH<span class="o">O</span>STS</div>
+    <div class="tagline">Messages fade · Privacy stays</div>
+    <p class="concept"><b>消えゆく会話。</b><br>メッセージごとに寿命を決められる、プライベートチャット。</p>
+  </div>
+  <div class="scrollcue">scroll ↓</div>
+</header>
+
+<!-- CONCEPT -->
+<section>
+  <div class="wrap rv">
+    <span class="eyebrow">01 — Concept</span>
+    <h2>なにが違うのか</h2>
+    <p class="sec-sub">SignalやTelegramのような「消えるチャット」は全体を一括で自動削除する。Specterは <b style="color:var(--ghost)">1通ごとに寿命を選べる</b> ことを核にした。</p>
+    <span class="eyebrow" style="margin-bottom:14px">メッセージの寿命</span>
+    <div class="spectrum">
+      <span class="life keep">残す</span>
+      <span class="life read">既読後</span>
+      <span class="arrow">›</span>
+      <span class="life" style="opacity:.95">10秒</span>
+      <span class="life" style="opacity:.85">1分</span>
+      <span class="life" style="opacity:.72">10分</span>
+      <span class="life" style="opacity:.58">1時間</span>
+      <span class="life" style="opacity:.44">24時間</span>
+      <span class="life" style="opacity:.3">7日</span>
+      <svg class="ghosticon" width="26" height="26" viewBox="0 0 32 32"><path fill="#454c57" d="M16 3c-6 0-10 4.6-10 11v13.2c0 1 0 1.8 1.1 1.3 1-.5 1.8-1.6 2.6-1.6.9 0 1.5 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.9 0 1.6 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.8 0 1.6 1.1 2.6 1.6 1.1.5 1.1-.3 1.1-1.3V14C26 7.6 22 3 16 3z"/></svg>
+    </div>
+    <div class="note">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span>消滅するとサーバーからも実削除。相手の画面でも粒子になって消える。<b style="color:var(--ghost)">復元はできない。</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- JOURNEY -->
+<section>
+  <div class="wrap rv">
+    <span class="eyebrow">02 — Journey</span>
+    <h2>これまでの歩み</h2>
+    <p class="sec-sub">iPhone1台・コードはすべて委任で、ゼロから積み上げた開発の流れ。</p>
+    <div class="timeline">
+      <div class="step"><div class="ph">Step 01 · 骨組み</div><h3>画面遷移型アプリの土台</h3><p>GitHub Pagesで公開。ENTER → 登録 → 一覧 → チャットの画面切替UIをスマホアプリライクに構築。</p></div>
+      <div class="step"><div class="ph">Step 02 · 世界観</div><h3>ロゴ・アイコン・デザイン確立</h3><p>粒子化するゴーストのロゴと起動画面、ホーム画面アイコン。黒×スペクトラルエメラルドの世界観に統一。</p></div>
+      <div class="step"><div class="ph">Step 03 · 招待制</div><h3>招待した人だけが繋がる</h3><p>ID検索による無断追加を廃止。招待リンク／QRを渡した相手が承認して初めて接続成立。</p></div>
+      <div class="step"><div class="ph">Step 04 · Firebase</div><h3>本物のリアルタイム通信</h3><p>匿名ログイン＋Firestoreで実際の送受信。消滅ルールでサーバー側も実削除する仕組みに。</p></div>
+      <div class="step"><div class="ph">Step 05 · アカウント</div><h3>ニックネーム・ID・ログイン</h3><p>表示名と自分で決めるID、パスワードを設定。別端末でもログインで同じIDに入れる（ID量産を解消）。</p></div>
+      <div class="step"><div class="ph">Step 06 · グループ</div><h3>グループチャット</h3><p>複数人の会話、送信者名表示、寿命設定にも対応。「既読後」は全員が読んだら消滅。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section>
+  <div class="wrap rv">
+    <span class="eyebrow">03 — Features</span>
+    <h2>主要機能</h2>
+    <div class="grid">
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg></div><h3>匿名アカウント</h3><p>電話番号もメールも不要。ニックネーム＋Ghost ID＋パスワードで、端末をまたいで同じIDに。</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></div><h3>招待制</h3><p>招待リンク／QRを渡した相手だけが接続可能。リンクは作り直して無効化もできる。</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>リアルタイムチャット</h3><p>Firestoreで即時送受信。既読表示・吹き出しUI。送信者名はグループでも表示。</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h3>メッセージ寿命</h3><p>残す／既読後／10秒〜7日。期限が来ると両者の画面で粒子になって消滅、サーバーからも削除。</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3>グループチャット</h3><p>連絡先から複数人を選んで作成。メンバー追加・退出、グループでも寿命設定が使える。</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg></div><h3>プライバシー設計</h3><p>サーバー保存は最小限。消えた会話は復元不可。接続済みの相手しか会話に触れられない。</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div><h3>プロフィール写真</h3><p>自分のアイコンを写真/画像に。端末側で圧縮して保存し、招待・連絡先経由で相手にも反映。</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg></div><h3>画像の送受信</h3><p>写真を圧縮して送信、インライン表示＋タップで全画面。寿命・削除・既読も画像に対応。</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><h3>既読と未読</h3><p>DMは既読＋時刻、グループは「誰が読んだか」一覧。一覧には未読件数バッジを表示。</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div><h3>取り消し送信</h3><p>自分のメッセージを長押し → 全員の画面から削除。入力中インジケータやリンク化も。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section>
+  <div class="wrap rv">
+    <span class="eyebrow">04 — How it works</span>
+    <h2>仕組み</h2>
+    <p class="sec-sub">単一の <span class="mono" style="color:var(--ghost)">index.html</span> がFirebaseと直接やり取りし、GitHub Pagesから配信される。</p>
+    <div class="stack">
+      <div class="layer"><span class="tag">App</span><div class="body"><b>Specter（HTML / CSS / JS）</b><span>画面切替UI・寿命ロジック・粒子エフェクト。1ファイル完結。</span></div></div>
+      <div class="conn"></div>
+      <div class="layer"><span class="tag">Auth</span><div class="body"><b>Firebase Authentication</b><span>匿名ログイン ＋ メール/パスワード（同じIDで複数端末ログイン）。</span></div></div>
+      <div class="conn"></div>
+      <div class="layer"><span class="tag">DB</span><div class="body"><b>Cloud Firestore</b><span>users / contacts / invites / connections / groups / messages をリアルタイム同期。</span></div></div>
+      <div class="conn"></div>
+      <div class="layer"><span class="tag">Host</span><div class="body"><b>GitHub Pages</b><span>Contents API で push → 自動デプロイ。</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- INVITE FLOW -->
+<section>
+  <div class="wrap rv">
+    <span class="eyebrow">05 — Connect</span>
+    <h2>招待のながれ</h2>
+    <p class="sec-sub">招待された相手としか繋がらない。これが「招待制」の中身。</p>
+    <div class="flow">
+      <div class="fstep"><span class="n">01</span><b>招待を渡す</b><span>リンク or QR</span></div>
+      <div class="fstep"><span class="n">02</span><b>承認</b><span>相手がタップ</span></div>
+      <div class="fstep"><span class="n">03</span><b>接続成立</b><span>双方向で繋がる</span></div>
+      <div class="fstep"><span class="n">04</span><b>会話開始</b><span>ここで初めて送受信</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section>
+  <div class="wrap rv">
+    <span class="eyebrow">06 — Security</span>
+    <h2>守りかた</h2>
+    <div class="seclist">
+      <div class="secitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><div><b>接続済みの相手だけ</b><p>Firestoreのセキュリティルールで、接続済みの2人／グループのメンバー以外は会話を読み書きできない。UIをすり抜けても無理。</p></div></div>
+      <div class="secitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg><div><b>消えたら復元不可</b><p>寿命が尽きたメッセージはドキュメントごと削除。ミラーにも本文を残さない。</p></div></div>
+      <div class="secitem warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><div><b>E2EEは今後の課題</b><p>現状メッセージはルールで保護されているが平文保存。文言どおりの暗号化は次フェーズで実装予定。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- STACK -->
+<section>
+  <div class="wrap rv">
+    <span class="eyebrow">07 — Stack</span>
+    <h2>技術スタック</h2>
+    <div class="badges">
+      <span class="badge">HTML <span class="d">/</span> CSS <span class="d">/</span> JS</span>
+      <span class="badge">Firebase <span class="d">Auth</span></span>
+      <span class="badge">Cloud <span class="d">Firestore</span></span>
+      <span class="badge">GitHub <span class="d">Pages</span></span>
+      <span class="badge">Space <span class="d">Grotesk</span></span>
+      <span class="badge">PWA <span class="d">対応</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- STATUS -->
+<section>
+  <div class="wrap rv">
+    <span class="eyebrow">08 — Status</span>
+    <h2>現在地と、これから</h2>
+    <div class="cols">
+      <div class="col done">
+        <h3>✓ 完成</h3>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>招待制の接続・リアルタイム送受信</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>メッセージ寿命・取り消し送信</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>アカウント・プロフィール写真</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>グループチャット・既読詳細・未読バッジ</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>画像送受信・入力中表示</li>
+        </ul>
+      </div>
+      <div class="col next">
+        <h3>→ 今後</h3>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>エンドツーエンド暗号化（本実装）</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>1対1の音声／ビデオ通話</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>本格PWA・通知</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>画像・添付、閲覧回数制限</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="gm"><svg width="30" height="30" viewBox="0 0 32 32"><path fill="#454c57" d="M16 3c-6 0-10 4.6-10 11v13.2c0 1 0 1.8 1.1 1.3 1-.5 1.8-1.6 2.6-1.6.9 0 1.5 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.9 0 1.6 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.8 0 1.6 1.1 2.6 1.6 1.1.5 1.1-.3 1.1-1.3V14C26 7.6 22 3 16 3z"/></svg></div>
+  <div class="t">SPECTER</div>
+  <div class="s">Nothing Stays Forever<br>Priority Creative Works</div>
+</footer>
+
+<script>
+// ambient stars
+(function(){
+  const c=document.getElementById('stars'),x=c.getContext('2d');let p=[];
+  function size(){c.width=c.offsetWidth;c.height=c.offsetHeight;p=Array.from({length:46},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.5+.3,s:Math.random()*.25+.04,a:Math.random()*.45+.1}));}
+  function loop(){x.clearRect(0,0,c.width,c.height);for(const o of p){o.y-=o.s;o.x+=Math.sin(o.y*.01)*.15;if(o.y<-4){o.y=c.height+4;o.x=Math.random()*c.width;}x.fillStyle=`rgba(47,231,168,${o.a})`;x.beginPath();x.arc(o.x,o.y,o.r,0,7);x.fill();}requestAnimationFrame(loop);}
+  size();loop();addEventListener('resize',size);
+})();
+
+// ghost shedding particles (signature)
+(function(){
+  const c=document.getElementById('ghostfx'),x=c.getContext('2d');
+  const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  let parts=[];
+  function spawn(){ // emit from the ghost's right edge
+    parts.push({x:c.width*0.42+Math.random()*40,y:c.height*0.32+Math.random()*120,
+      vx:.5+Math.random()*1.4, vy:(Math.random()-.6)*.7, life:1, sz:1+Math.random()*2.2});
+  }
+  function loop(){
+    x.clearRect(0,0,c.width,c.height);
+    if(!reduce && parts.length<90 && Math.random()<.7) spawn();
+    parts=parts.filter(p=>p.life>0);
+    for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vx*=.99;p.life-=.012;
+      const em=p.x>c.width*0.5; x.fillStyle=em?`rgba(47,231,168,${p.life})`:`rgba(238,242,240,${p.life})`;
+      x.fillRect(p.x,p.y,p.sz,p.sz);}
+    requestAnimationFrame(loop);
+  }
+  if(!reduce) loop();
+})();
+
+// scroll reveal
+(function(){
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.16});
+  document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Specter セキュリティ比較</title>
+<style>
+  :root{
+    --void:#07080b; --ink:#0d0f14; --line:#1b2026; --fade:#8a93a0;
+    --ghost:#eef2f6; --spectral:#2fe7a8; --amber:#ffcf5c; --red:#ff8f8f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--void);color:var(--ghost);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif;
+    line-height:1.7;padding:0 0 80px}
+  .wrap{max-width:780px;margin:0 auto;padding:0 20px}
+  header{padding:54px 20px 30px;text-align:center;border-bottom:1px solid var(--line);
+    background:radial-gradient(900px 320px at 50% -40%,rgba(47,231,168,.12),transparent)}
+  .tag{font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.34em;color:var(--spectral);text-transform:uppercase}
+  h1{font-family:"Space Grotesk",sans-serif;font-size:30px;margin:12px 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--fade);font-size:14px;max-width:560px;margin:0 auto}
+  h2{font-family:"Space Grotesk",sans-serif;font-size:20px;margin:46px 0 6px;letter-spacing:-.01em}
+  .lead{color:var(--fade);font-size:13.5px;margin:0 0 18px}
+  section{padding-top:8px}
+
+  /* tier ladder */
+  .ladder{display:flex;flex-direction:column;gap:10px;margin:18px 0}
+  .rung{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:var(--ink)}
+  .rung .rank{font-family:"Space Mono",monospace;font-size:12px;color:var(--fade);width:30px;flex:none}
+  .rung .name{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:15px}
+  .rung .note{color:var(--fade);font-size:12.5px;margin-top:2px}
+  .rung .bar{flex:1;height:8px;border-radius:6px;background:#11151b;overflow:hidden;margin-left:auto;max-width:160px}
+  .rung .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#1f8f66,var(--spectral))}
+  .rung.me{border-color:rgba(47,231,168,.5);box-shadow:0 0 0 1px rgba(47,231,168,.25),0 0 30px rgba(47,231,168,.1)}
+  .rung.me .name{color:var(--spectral)}
+  .score{font-family:"Space Mono",monospace;font-size:13px;color:var(--ghost);width:52px;text-align:right;flex:none}
+
+  /* table */
+  .tbl{width:100%;border-collapse:collapse;margin:12px 0 6px;font-size:13px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .tbl th,.tbl td{padding:11px 9px;text-align:center;border-bottom:1px solid var(--line)}
+  .tbl th{background:#0f1318;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:12px}
+  .tbl td:first-child,.tbl th:first-child{text-align:left;font-size:12.5px}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl .me{color:var(--spectral);font-weight:700}
+  .yes{color:var(--spectral)} .no{color:var(--red)} .mid{color:var(--amber)}
+  .scol{background:rgba(47,231,168,.05)}
+  .small{font-size:11px;color:var(--fade)}
+
+  .card{border:1px solid var(--line);border-radius:16px;padding:16px 18px;background:var(--ink);margin:12px 0}
+  .card h3{font-family:"Space Grotesk",sans-serif;margin:0 0 8px;font-size:15px}
+  .good{border-left:3px solid var(--spectral)}
+  .warn{border-left:3px solid var(--amber)}
+  ul.clean{list-style:none;padding:0;margin:6px 0}
+  ul.clean li{padding-left:22px;position:relative;margin:7px 0;font-size:13.5px;color:#d4dae1}
+  ul.clean li:before{content:"›";position:absolute;left:6px;color:var(--spectral)}
+  .foot{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);color:var(--fade);font-size:12px;text-align:center}
+  b{color:#fff;font-weight:600}
+  .legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:10px 0 0;font-size:11.5px;color:var(--fade)}
+  .legend span:before{margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+  <div class="tag">Security Landscape · 2026</div>
+  <h1>Specter はどの位置にいる？</h1>
+  <p class="sub">主要トークアプリと、暗号化・メタデータ・運用面で正直に比較しました。誇張なし。</p>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <h2>ざっくり序列</h2>
+    <p class="lead">「中身の安全さ」を軸にした、おおまかな立ち位置（あくまで目安）。</p>
+    <div class="ladder">
+      <div class="rung">
+        <span class="rank">01</span>
+        <div><div class="name">Signal</div><div class="note">Double Ratchet・前方秘匿性・第三者監査・メタデータ最小。事実上の最高基準</div></div>
+        <div class="bar"><div class="fill" style="width:97%"></div></div>
+        <div class="score">95</div>
+      </div>
+      <div class="rung">
+        <span class="rank">02</span>
+        <div><div class="name">iMessage</div><div class="note">既定でE2EE・PQ3で耐量子。ただしApple端末間のみ／非Apple宛はSMSに転落</div></div>
+        <div class="bar"><div class="fill" style="width:85%"></div></div>
+        <div class="score">85</div>
+      </div>
+      <div class="rung">
+        <span class="rank">03</span>
+        <div><div class="name">WhatsApp</div><div class="note">中身はSignalプロトコルで既定E2EE。だが運営はMeta、メタデータが広告に流れる</div></div>
+        <div class="bar"><div class="fill" style="width:75%"></div></div>
+        <div class="score">75</div>
+      </div>
+      <div class="rung me">
+        <span class="rank">04</span>
+        <div><div class="name">Specter（あなたのアプリ）</div><div class="note">既定E2EE・取り出し不可の鍵・改ざん/なりすまし防止・消える設計。前方秘匿性と監査が未了</div></div>
+        <div class="bar"><div class="fill" style="width:78%"></div></div>
+        <div class="score">78</div>
+      </div>
+      <div class="rung">
+        <span class="rank">05</span>
+        <div><div class="name">Telegram</div><div class="note">既定は<b style="color:var(--red)">E2EEではない</b>（サーバーが鍵を保持）。Secret Chatは手動・1対1のみ・独自MTProto</div></div>
+        <div class="bar"><div class="fill" style="width:55%"></div></div>
+        <div class="score">60</div>
+      </div>
+    </div>
+    <p class="small">※ Signal/WhatsApp/Telegramのスコアは2026年の公開比較記事（NovelCrypt等）の目安値。Specterは自己評価で、第三者監査を受けていない点に留意。</p>
+  </section>
+
+  <section>
+    <h2>機能ごとの比較</h2>
+    <p class="lead">「既定で安全か」が肝。Telegramは“暗号化アプリ”の印象と実態が大きく違う点に注意。</p>
+    <table class="tbl">
+      <tr>
+        <th>項目</th><th>Signal</th><th>WhatsApp</th><th>Telegram</th><th class="scol">Specter</th>
+      </tr>
+      <tr><td>既定でE2EE（DM）</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗ 任意</td><td class="scol me">✓</td></tr>
+      <tr><td>グループもE2EE</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td><td class="scol me">✓</td></tr>
+      <tr><td>通話のE2EE</td><td class="yes">✓</td><td class="yes">✓</td><td class="mid">Secret</td><td class="scol me">✓</td></tr>
+      <tr><td>秘密鍵の保護</td><td class="yes">端末内</td><td class="yes">端末内</td><td class="mid">一部鍵を保持</td><td class="scol me">取り出し不可</td></tr>
+      <tr><td>なりすまし防止</td><td class="yes">✓</td><td class="yes">✓</td><td class="mid">△</td><td class="scol me">✓</td></tr>
+      <tr><td>本文の改ざん防止</td><td class="yes">✓</td><td class="yes">✓</td><td class="mid">△</td><td class="scol me">✓</td></tr>
+      <tr><td>前方秘匿性</td><td class="yes">✓</td><td class="yes">✓</td><td class="mid">Secretのみ</td><td class="scol no">✗</td></tr>
+      <tr><td>消える設計</td><td class="yes">標準</td><td class="mid">限定的</td><td class="mid">Secret</td><td class="scol me">標準</td></tr>
+      <tr><td>電話番号が不要</td><td class="no">✗ 必要</td><td class="no">✗ 必要</td><td class="no">✗ 必要</td><td class="scol me">✓ 不要</td></tr>
+      <tr><td>メタデータ最小化</td><td class="yes">最高</td><td class="no">弱い(Meta)</td><td class="mid">中</td><td class="scol mid">中〜良</td></tr>
+      <tr><td>第三者監査</td><td class="yes">✓ 複数回</td><td class="mid">一部</td><td class="no">稀</td><td class="scol no">✗ 未実施</td></tr>
+      <tr><td>運営</td><td>非営利</td><td>Meta</td><td>Telegram社</td><td class="scol me">個人(あなた)</td></tr>
+    </table>
+    <div class="legend">
+      <span class="yes">✓ 強い / あり</span>
+      <span class="mid">△ 条件付き</span>
+      <span class="no">✗ なし / 弱い</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Specterが“勝っている”点</h2>
+    <div class="card good">
+      <ul class="clean">
+        <li><b>電話番号が要らない</b> — Signal/WhatsApp/Telegramは全て電話番号必須。番号は強力な身元の“錨”になる。Specterはランダムなghost IDだけで使え、<b>身元の手がかりを残さない</b>。これは大手3つを上回る点。</li>
+        <li><b>消える設計が標準</b> — Telegramの印象に反し、消える機能はSecret限定。Specterは全DMで寿命設定が標準。</li>
+        <li><b>秘密鍵が取り出し不可</b> — 端末が乗っ取られても鍵の中身を吸い出せない。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Specterが“まだ届かない”点</h2>
+    <div class="card warn">
+      <ul class="clean">
+        <li><b>前方秘匿性（Double Ratchet）</b> — Signal/WhatsAppは1通ごとに鍵を使い捨て、過去を守る。Specterは未実装（実装すると過去ログ消失の事故リスクが高く、慎重さが必要なため見送り中）。</li>
+        <li><b>第三者監査</b> — Signalは複数回の学術監査済み。Specterは個人開発で未監査。コードが正しい保証は“作者の誠実さ”止まり。</li>
+        <li><b>実績・規模・運用</b> — 障害対応や大規模運用の歴史がない。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>正直な結論</h2>
+    <div class="card">
+      <p style="margin:0 0 10px;font-size:14px">Specterは <b>「既定で中身を守る」コア部分では Signal / WhatsApp と同じ土俵</b>に立っています。さらに <b>電話番号不要・消える標準</b>という点では大手3つを上回ります。Telegram は“暗号化アプリ”の評判に反し、既定が非E2EEなので <b>中身の安全さでは Specter が明確に上</b>。</p>
+      <p style="margin:0;font-size:14px;color:var(--fade)">一方で <b>前方秘匿性と第三者監査</b> が無いため、「命に関わる機密」を扱うなら依然 Signal が正解。Specterの正確な位置づけは——<b style="color:var(--spectral)">「無料・個人開発のプライバシーアプリとして最上位クラス。番号不要と消える設計では大手超え。ただし監査済みSignalの“最後の砦”には未到達」</b>。</p>
+    </div>
+  </section>
+
+  <div class="foot">
+    Specter · セキュリティ比較（2026年6月時点）<br>
+    各社仕様は2026年の公開比較記事に基づく目安。Specterの評価は自己申告であり第三者監査を受けていません。
+  </div>
+</div>
+</body>
+</html>

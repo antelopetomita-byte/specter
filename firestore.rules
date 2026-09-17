@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function connExists(a, b) {
+      return exists(/databases/$(database)/documents/connections/$(a + '__' + b))
+          || exists(/databases/$(database)/documents/connections/$(b + '__' + a));
+    }
+    function isConnMember(conv) {
+      return exists(/databases/$(database)/documents/connections/$(conv))
+        && uid() in get(/databases/$(database)/documents/connections/$(conv)).data.members;
+    }
+    function isGroupMember(conv) {
+      return exists(/databases/$(database)/documents/groups/$(conv))
+        && uid() in get(/databases/$(database)/documents/groups/$(conv)).data.members;
+    }
+    function inChat(conv) { return isConnMember(conv) || isGroupMember(conv); }
+
+    // message content must never change after creation (only readBy / expireAt may be added)
+    function msgImmutable() {
+      return request.resource.data.from == resource.data.from
+        && request.resource.data.ts   == resource.data.ts
+        && request.resource.data.get('enc', false) == resource.data.get('enc', false)
+        && request.resource.data.get('ct', '')     == resource.data.get('ct', '')
+        && request.resource.data.get('iv', '')     == resource.data.get('iv', '')
+        && request.resource.data.get('text', '')   == resource.data.get('text', '')
+        && request.resource.data.get('type', 'text') == resource.data.get('type', 'text');
+    }
+
+    match /users/{u} {
+      allow read, write: if signedIn() && u == uid();
+      match /contacts/{cid} {
+        allow read:  if signedIn() && u == uid();
+        allow write: if signedIn() && ( u == uid() || (cid == uid() && connExists(u, cid)) );
+      }
+    }
+
+    // invites are token-keyed: allow direct get (you must know the token) but NOT listing/enumeration
+    match /invites/{token} {
+      allow get:            if signedIn();
+      allow create:         if signedIn() && request.resource.data.from == uid();
+      allow update, delete: if signedIn() && resource.data.from == uid();
+    }
+
+    // connection doc carries typing + call signaling; members must not be altered on update
+    match /connections/{cid} {
+      allow read, delete: if signedIn() && uid() in resource.data.members;
+      allow update:       if signedIn() && uid() in resource.data.members
+                          && request.resource.data.members == resource.data.members;
+      allow create:       if signedIn()
+                          && uid() in request.resource.data.members
+                          && request.resource.data.members.size() == 2;
+    }
+
+    // groups: members may update (name/keys/typing/etc) but ownership cannot be hijacked
+    match /groups/{gid} {
+      allow read:   if signedIn() && uid() in resource.data.members;
+      allow create: if signedIn() && uid() == request.resource.data.owner
+                    && uid() in request.resource.data.members;
+      allow update: if signedIn() && uid() in resource.data.members
+                    && request.resource.data.owner == resource.data.owner;
+      allow delete: if signedIn() && uid() == resource.data.owner;
+    }
+
+    // push subscriptions: owner writes; connected peers can read (to send notifications)
+    match /pushSubs/{u} {
+      allow write: if signedIn() && u == uid();
+      allow read:  if signedIn() && ( u == uid() || connExists(u, uid()) );
+    }
+
+    // messages: sender cannot be forged; content is immutable after creation
+    match /chats/{conv}/messages/{mid} {
+      allow read:   if signedIn() && inChat(conv);
+      allow create: if signedIn() && inChat(conv) && request.resource.data.from == uid();
+      allow update: if signedIn() && inChat(conv) && msgImmutable();
+      allow delete: if signedIn() && inChat(conv);
+    }
+  }
+}

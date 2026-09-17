@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Specter — 図解仕様書 & 安全性ガイド</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --void:#07080b; --void-2:#0d0f15; --mist:#161b23; --line:rgba(255,255,255,.09);
+    --ghost:#eef2f0; --fade:#7b828d; --fade-2:#454c57; --spectral:#2fe7a8;
+    --soft:rgba(47,231,168,.12); --sline:rgba(47,231,168,.34);
+    --warn:#ffd27a; --warnbg:rgba(255,170,60,.09); --warnline:rgba(255,170,60,.28);
+    --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--void);color:var(--ghost);font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.65;overflow-x:hidden}
+  .wrap{max-width:860px;margin:0 auto;padding:0 22px}
+  .mono{font-family:"Space Mono",monospace}
+  h2{font:600 25px/1.25 "Space Grotesk";letter-spacing:-.01em;margin-bottom:6px}
+  h3{font:600 17px/1.3 "Space Grotesk";margin:20px 0 10px}
+  p{color:#c7ccd2;font-size:14.5px;margin:8px 0}
+  b{color:var(--ghost)}
+  .em{color:var(--spectral);font-weight:600}
+
+  /* hero */
+  .hero{text-align:center;padding:72px 22px 30px}
+  .hero .mark{width:78px;height:78px;margin:0 auto 20px;filter:drop-shadow(0 0 22px rgba(47,231,168,.28))}
+  .hero h1{font:700 38px/1 "Space Grotesk";letter-spacing:.05em}
+  .hero h1 .o{color:var(--spectral);text-shadow:0 0 20px var(--spectral)}
+  .hero .sub{font:400 12px/1 "Space Mono";letter-spacing:.32em;color:var(--fade);text-transform:uppercase;margin-top:14px}
+  .hero .lead{margin-top:20px;color:var(--fade);font-size:15px;max-width:34ch;margin-left:auto;margin-right:auto}
+
+  section{padding:34px 0;border-top:1px solid var(--line)}
+  .kicker{font:700 11px/1 "Space Mono";letter-spacing:.22em;color:var(--spectral);text-transform:uppercase;margin-bottom:10px}
+
+  /* generic card / box */
+  .card{background:var(--void-2);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:12px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:620px){ .grid2{grid-template-columns:1fr} }
+
+  /* node diagram */
+  .flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+  .node{flex:1;min-width:140px;background:var(--void-2);border:1px solid var(--line);border-radius:13px;padding:14px;text-align:center}
+  .node .ic{font-size:26px}
+  .node .t{font:600 14px "Space Grotesk";margin-top:8px}
+  .node .d{font-size:12px;color:var(--fade);margin-top:4px;line-height:1.4}
+  .node.em{border-color:var(--sline);background:linear-gradient(180deg,var(--soft),transparent)}
+  .arrow{display:flex;align-items:center;color:var(--fade-2);font-size:22px;padding:0 2px}
+  @media(max-width:620px){ .arrow{transform:rotate(90deg);justify-content:center;width:100%;height:18px} .flow{flex-direction:column} .node{min-width:0} }
+
+  /* lock pipeline (E2EE) */
+  .pipe{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0}
+  .stage{flex:1;min-width:130px;border-radius:13px;padding:14px 12px;text-align:center;border:1px solid var(--line)}
+  .stage .h{font:600 13px "Space Grotesk"}
+  .stage .s{font-size:11px;color:var(--fade);margin-top:5px;line-height:1.45}
+  .stage.plain{background:rgba(255,170,60,.06);border-color:var(--warnline)}
+  .stage.cipher{background:var(--void-2)}
+  .stage.cipher .blob{font-family:"Space Mono";font-size:11px;color:var(--spectral);word-break:break-all;opacity:.8}
+  .stage.safe{background:linear-gradient(180deg,var(--soft),transparent);border-color:var(--sline)}
+  @media(max-width:620px){ .pipe{flex-direction:column} .pipe .arrow{transform:rotate(90deg)} }
+
+  /* lifespan chips */
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
+  .chip{border:1px solid var(--line);border-radius:13px;padding:6px 11px;font-size:12px;color:var(--fade)}
+  .chip.on{background:var(--spectral);color:var(--void);border-color:var(--spectral);font-weight:700}
+
+  /* checklist */
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:9px;margin:10px 0}
+  ul.clean li{position:relative;padding-left:24px;font-size:14px;color:#cdd2d8}
+  ul.clean li::before{content:"";position:absolute;left:2px;top:7px;width:9px;height:9px;border-radius:50%;border:2px solid var(--spectral)}
+  ul.clean.lock li::before{content:"🔒";border:none;left:0;top:0;width:auto;height:auto;font-size:13px}
+
+  /* SAS demo */
+  .sas{display:flex;gap:14px;justify-content:center;align-items:center;margin:12px 0;flex-wrap:wrap}
+  .sasbox{background:var(--void-2);border:1px solid var(--sline);border-radius:13px;padding:12px 16px;text-align:center}
+  .sasbox .who{font:700 10px "Space Mono";letter-spacing:.14em;color:var(--fade);text-transform:uppercase}
+  .sasbox .emo{font-size:26px;letter-spacing:5px;margin-top:6px}
+  .eq{font-size:24px;color:var(--spectral)}
+
+  /* table */
+  .tbl{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;overflow:hidden;border-radius:12px;border:1px solid var(--line)}
+  .tbl th,.tbl td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line)}
+  .tbl th{background:var(--void-2);font:600 12px "Space Grotesk";color:var(--ghost)}
+  .tbl td{color:#c7ccd2}
+  .tbl tr:last-child td{border-bottom:none}
+  .yes{color:var(--spectral);font-weight:700}
+  .no{color:var(--danger)}
+  .mid{color:var(--warn)}
+
+  /* rating bars */
+  .bar{margin:10px 0}
+  .bar .lab{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px}
+  .bar .lab .v{color:var(--spectral);font-family:"Space Mono"}
+  .track{height:9px;background:var(--mist);border-radius:6px;overflow:hidden}
+  .fill{height:100%;background:linear-gradient(90deg,#1f9d74,var(--spectral))}
+
+  .note{font:500 13px/1.6 "Inter";color:var(--warn);background:var(--warnbg);border:1px solid var(--warnline);border-radius:10px;padding:11px 14px;margin:12px 0}
+  .good{font:500 13px/1.6 "Inter";color:var(--spectral);background:var(--soft);border:1px solid var(--sline);border-radius:10px;padding:11px 14px;margin:12px 0}
+
+  footer{text-align:center;padding:46px 22px 70px;border-top:1px solid var(--line);color:var(--fade-2)}
+  footer .t{font:600 14px "Space Grotesk";letter-spacing:.2em;color:var(--ghost)}
+  footer .s{font:400 10px/1.7 "Space Mono";letter-spacing:.1em;margin-top:8px}
+  .ghost-svg path{fill:#eef2f0}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="mark"><svg viewBox="0 0 32 32"><path fill="#eef2f0" d="M16 3c-6 0-10 4.6-10 11v13.2c0 1 0 1.8 1.1 1.3 1-.5 1.8-1.6 2.6-1.6.9 0 1.5 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.9 0 1.6 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.8 0 1.6 1.1 2.6 1.6 1.1.5 1.1-.3 1.1-1.3V14C26 7.6 22 3 16 3z"/><circle cx="12.4" cy="13.5" r="1.8" fill="#07080b"/><circle cx="19.6" cy="13.5" r="1.8" fill="#07080b"/></svg></div>
+  <h1>GH<span class="o">O</span>STS</h1>
+  <div class="sub">図解仕様書 &amp; 安全性ガイド</div>
+  <p class="lead">何ができて、どう守られているのか。人に説明するための1枚です。</p>
+</header>
+
+<div class="wrap">
+
+  <!-- 1. what -->
+  <section>
+    <div class="kicker">01 — Specterとは</div>
+    <h2>消えていく会話のためのメッセージアプリ</h2>
+    <p>テキスト・写真・音声通話ができる、招待制のプライベートメッセンジャー。最大の特徴は <span class="em">メッセージ1通ごとに「寿命」を決められる</span>こと。期限が来ると、両者の画面とサーバーの両方から消えます。</p>
+    <div class="grid2">
+      <div class="card"><b>🫥 消える</b><p style="margin:6px 0 0">寿命を過ぎたメッセージは復元できない形で削除。</p></div>
+      <div class="card"><b>🔒 暗号化</b><p style="margin:6px 0 0">DMもグループも端末間で暗号化。サーバーは中身を持たない。</p></div>
+      <div class="card"><b>🤝 招待制</b><p style="margin:6px 0 0">ID検索なし。リンク/QRを渡した相手とだけつながる。</p></div>
+      <div class="card"><b>📞 通話</b><p style="margin:6px 0 0">1対1の音声通話。絵文字で盗聴チェックも可能。通話・不在着信は履歴に残る。</p></div>
+      <div class="card"><b>😀 絵文字・リアクション</b><p style="margin:6px 0 0">絵文字をワンタップ挿入。メッセージ長押しで👍❤️などのリアクション。</p></div>
+    </div>
+  </section>
+
+  <!-- 2. architecture -->
+  <section>
+    <div class="kicker">02 — 仕組み（全体図）</div>
+    <h2>どう動いているか</h2>
+    <p>アプリ本体は1枚のWebページ。データの同期はFirebase、通知の送信だけVercelが担当します。</p>
+    <div class="flow">
+      <div class="node em"><div class="ic">📱</div><div class="t">あなたの端末</div><div class="d">アプリ画面・暗号化・復号はすべてここ</div></div>
+      <div class="arrow">⇄</div>
+      <div class="node"><div class="ic">🔥</div><div class="t">Firebase</div><div class="d">ログイン認証＋会話データの同期（中身は暗号文）</div></div>
+      <div class="arrow">⇄</div>
+      <div class="node em"><div class="ic">📱</div><div class="t">相手の端末</div><div class="d">受け取って復号して表示</div></div>
+    </div>
+    <div class="flow">
+      <div class="node"><div class="ic">🌐</div><div class="t">GitHub Pages</div><div class="d">アプリ本体（index.html）を配信</div></div>
+      <div class="node"><div class="ic">📨</div><div class="t">Vercel</div><div class="d">プッシュ通知の送信のみ</div></div>
+    </div>
+    <p style="font-size:13px;color:var(--fade)">ポイント: <b>暗号化と復号は端末の中だけ</b>で行われ、サーバーには暗号文しか流れません。</p>
+  </section>
+
+  <!-- 3. lifespan -->
+  <section>
+    <div class="kicker">03 — メッセージの寿命</div>
+    <h2>1通ごとに消えるタイミングを選ぶ</h2>
+    <div class="chips">
+      <span class="chip">残す</span>
+      <span class="chip on">既読後24h（既定）</span>
+      <span class="chip">既読後</span>
+      <span class="chip">10秒</span><span class="chip">1分</span><span class="chip">10分</span>
+      <span class="chip">1時間</span><span class="chip">24時間</span><span class="chip">7日</span>
+    </div>
+    <ul class="clean">
+      <li><b>既定は「既読後24h」</b> — 何も選ばなければ、相手が読んでから24時間で消える。</li>
+      <li><b>残す</b> を選べば消えない。秒〜日を選べば送信からその時間で消える。</li>
+      <li>消えるときは両者の画面から<b>粒子になって消滅</b>し、サーバーの記録も削除。</li>
+    </ul>
+  </section>
+
+  <!-- 4. flow -->
+  <section>
+    <div class="kicker">04 — 使う流れ</div>
+    <h2>登録から会話まで</h2>
+    <div class="flow">
+      <div class="node"><div class="ic">①</div><div class="t">アカウント作成</div><div class="d">ニックネーム・ID・パスワード</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="ic">②</div><div class="t">招待でつながる</div><div class="d">リンク/QRを相手に渡す</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="ic">③</div><div class="t">会話</div><div class="d">テキスト・写真・通話</div></div>
+    </div>
+    <div class="note">⚠️ Ghost IDとパスワードは復元できません。必ずメモやスクショで保存を。忘れると同じIDに二度と入れません。</div>
+  </section>
+
+  <!-- 5. SECURITY (main) -->
+  <section>
+    <div class="kicker">05 — 安全性のしくみ 🔒</div>
+    <h2>どうやって守っているか</h2>
+
+    <h3>① エンドツーエンド暗号化（E2EE）</h3>
+    <p>メッセージは<b>送る端末で暗号化</b>され、<b>受け取る端末でだけ復号</b>されます。途中のサーバーには「鍵を持たない暗号文」しか存在しません。</p>
+    <div class="pipe">
+      <div class="stage plain"><div class="h">📱 あなた</div><div class="s">「19時に駅で」<br>＝平文</div></div>
+      <div class="arrow">→</div>
+      <div class="stage cipher"><div class="h">🔥 サーバー</div><div class="blob">8f3a…c1b9</div><div class="s">暗号文のみ<br>中身は読めない</div></div>
+      <div class="arrow">→</div>
+      <div class="stage safe"><div class="h">📱 相手</div><div class="s">🔓「19時に駅で」<br>＝復号して表示</div></div>
+    </div>
+    <ul class="clean lock">
+      <li>方式は ECDH（P-256）で鍵を作り、AES-GCM で暗号化（Web標準の暗号）。</li>
+      <li><b>秘密鍵は端末内のIndexedDBに「取り出し不可（non-extractable）」形式で保存</b>。仮にXSSや悪意ある拡張機能が動いても、鍵を<b>使う</b>ことはできても<b>中身を盗み出せない</b>。サーバーにも開発者にも渡らない。</li>
+      <li>DMはテキストも写真も暗号化。一覧には「🔒 メッセージ」とだけ表示。</li>
+      <li><b>暗号化できない相手には送信しない</b>。相手の公開鍵が取得できない場合は「送れません」と拒否し、<b>平文で送ることは一切ない</b>（フォールバック廃止）。</li>
+    </ul>
+
+    <h3>② グループも暗号化</h3>
+    <p>グループでは<span class="em">共通のグループ鍵</span>を1つ作り、それを<b>メンバー各自の公開鍵で包んで（鍵に鍵をかけて）</b>配ります。各自は自分の秘密鍵でだけ開けます。</p>
+    <div class="flow">
+      <div class="node em"><div class="ic">🔑</div><div class="t">グループ鍵</div><div class="d">この鍵で全メッセージを暗号化</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="ic">📦🔒</div><div class="t">各人用に包む</div><div class="d">メンバーの公開鍵で個別に暗号化</div></div>
+      <div class="arrow">→</div>
+      <div class="node em"><div class="ic">📱</div><div class="t">各メンバー</div><div class="d">自分の秘密鍵で開けて使用</div></div>
+    </div>
+    <p style="font-size:13px;color:var(--fade)">退出した人は、ルール上それ以降のメッセージも鍵も取得できなくなります。</p>
+
+    <h3>③ 通話の暗号化と「盗聴チェック」</h3>
+    <p>音声はWebRTCの標準暗号（DTLS-SRTP）で保護。さらに<span class="em">SAS（絵文字認証）</span>で、間に誰かが割り込んでいないか目視で確認できます。</p>
+    <div class="sas">
+      <div class="sasbox"><div class="who">あなた</div><div class="emo">🍣 🌙 🍇 🍋</div></div>
+      <div class="eq">＝</div>
+      <div class="sasbox"><div class="who">相手</div><div class="emo">🍣 🌙 🍇 🍋</div></div>
+    </div>
+    <p style="font-size:13px;color:var(--fade)">両端末で<b>同じ絵文字なら安全</b>。中間者が割り込むと絵文字がズレてバレます（Signalの安全番号・Telegramの絵文字確認と同じ考え方）。</p>
+
+    <h3>④ アクセス制御 — つながった人だけ</h3>
+    <ul class="clean">
+      <li>会話を読めるのは<b>その接続の当事者／グループのメンバーだけ</b>（サーバー側のルールで強制）。</li>
+      <li>ID検索による無断追加はなし。リンク/QRを渡した相手とだけつながる。</li>
+      <li>連絡先は長押しで削除でき、相手はそれ以降アクセスできなくなる。</li>
+    </ul>
+
+    <h3>⑤ サーバーは「配達員」でしかない</h3>
+    <p>データベースのルールを強化し、<b>サーバー（や悪意ある参加者）が余計なことをできない</b>ようにしました。</p>
+    <ul class="clean lock">
+      <li><b>本文の改ざん不可</b> — メッセージは一度送られると、暗号文・種別・送信者を後から書き換えできない（既読・期限の追記だけ許可）。</li>
+      <li><b>なりすまし不可</b> — 「送信者＝本人」でないメッセージは作れない。他人になりすまして送ることができない。</li>
+      <li><b>所有権の乗っ取り不可</b> — グループの所有者やメンバー構成を不正に書き換えできない。</li>
+      <li><b>招待の総当たり不可</b> — 招待リンクのトークンを知らない限り、招待情報を一覧・列挙できない。</li>
+    </ul>
+
+    <h3>⑥ 通知も「本人確認つき」</h3>
+    <p>プッシュ通知の送信も、<b>サーバー側で本人確認</b>してから行います。</p>
+    <ul class="clean lock">
+      <li>通知を出すには<b>本人のログイン証明（IDトークン）</b>が必要。誰でも勝手に通知を送れない。</li>
+      <li>サーバーが<b>「2人が実際につながっているか」を確認</b>してから配信。無関係な相手に通知を飛ばせない。</li>
+      <li>相手の通知先情報は<b>サーバー内で完結</b>。他の利用者に渡らない。連打を防ぐ制限つき。</li>
+    </ul>
+  </section>
+
+  <!-- 6. how safe -->
+  <section>
+    <div class="kicker">06 — どれくらい安全？</div>
+    <h2>正直な実力評価</h2>
+    <p>「中身の暗号化」はSpecterも有名アプリと同水準です。差が出るのは<b>実績・監査・運用の堅牢さ</b>です。</p>
+
+    <table class="tbl">
+      <tr><th>項目</th><th>Signal</th><th>Telegram</th><th>Specter</th></tr>
+      <tr><td>DMの暗号化</td><td class="yes">常時</td><td class="mid">秘密チャットのみ</td><td class="yes">常時</td></tr>
+      <tr><td>グループ暗号化</td><td class="yes">あり</td><td class="no">通常は無し</td><td class="yes">あり</td></tr>
+      <tr><td>通話の暗号化</td><td class="yes">E2EE</td><td class="yes">E2EE</td><td class="yes">E2EE</td></tr>
+      <tr><td>盗聴チェック</td><td class="yes">安全番号</td><td class="yes">絵文字</td><td class="yes">絵文字</td></tr>
+      <tr><td>秘密鍵の保護</td><td class="yes">端末内</td><td class="yes">端末内</td><td class="yes">端末内・取り出し不可</td></tr>
+      <tr><td>なりすまし防止</td><td class="yes">あり</td><td class="yes">あり</td><td class="yes">あり</td></tr>
+      <tr><td>本文の改ざん防止</td><td class="yes">あり</td><td class="yes">あり</td><td class="yes">あり</td></tr>
+      <tr><td>前方秘匿性（鍵が漏れても過去を守る）</td><td class="yes">あり</td><td class="mid">秘密チャット</td><td class="no">なし</td></tr>
+      <tr><td>消える設計</td><td class="mid">任意</td><td class="mid">秘密チャット</td><td class="yes">標準</td></tr>
+      <tr><td>第三者監査</td><td class="yes">あり</td><td class="mid">一部</td><td class="no">なし</td></tr>
+      <tr><td>規模・実績</td><td class="yes">世界規模</td><td class="yes">世界規模</td><td class="no">個人開発</td></tr>
+    </table>
+
+    <h3>安全性のイメージ</h3>
+    <div class="bar"><div class="lab"><span>Signal</span><span class="v">最高</span></div><div class="track"><div class="fill" style="width:100%"></div></div></div>
+    <div class="bar"><div class="lab"><span>Telegram（秘密チャット/通話）</span><span class="v">高</span></div><div class="track"><div class="fill" style="width:85%"></div></div></div>
+    <div class="bar"><div class="lab"><span>Specter</span><span class="v">中〜高</span></div><div class="track"><div class="fill" style="width:78%"></div></div></div>
+    <div class="bar"><div class="lab"><span>Telegram（通常チャット）</span><span class="v">中</span></div><div class="track"><div class="fill" style="width:45%"></div></div></div>
+
+    <div class="good"><b>Specterの強い点</b> — DMもグループも通話も暗号化／秘密鍵は端末内に<b>取り出し不可</b>で保存／暗号化できない時は<b>送らない</b>（平文フォールバック無し）／<b>なりすまし・本文改ざん・所有権乗っ取りをルールで防止</b>／<b>通知も本人確認つき</b>／消える設計が標準／つながった人だけがアクセス可。「中身を見られない」という核に加え、<b>サーバーや参加者の不正もかなり塞いだ</b>状態です。</div>
+    <div class="note"><b>正直な限界</b> — ①<b>前方秘匿性（Double Ratchet）は未実装</b>。万一いまの鍵が漏れると過去の暗号文も読まれうる（Signalはここが強い）。②消去は無料構成のため“ベストエフォート”（確実なサーバー側自動削除には有料機能が必要）。③鍵バックアップなし（端末を変えると過去の暗号文は読めない＝消える方向なので安全側）。④<b>第三者の安全監査は未実施</b>。⑤通話はSTUNのみで、厳しいネット環境では繋がらないことがある。⑥スクショや相手の端末からの流出はどのアプリでも防げない。</div>
+    <p style="font-size:13px;color:var(--fade)">まとめると、<b>「無料・個人開発のプライバシーアプリとしては、かなり上位」</b>。中身の暗号化に加え、なりすましや改ざん・通知の悪用といった<b>運用面の穴も塞ぎました</b>。残る主な差は<b>前方秘匿性と第三者監査</b>。命に関わる機密用途なら監査済みのSignalが正解ですが、Specterは「気軽に使えて、ちゃんと消えて、中身も経路も守られる」を高い水準で狙った設計です。</p>
+  </section>
+
+  <!-- 7. summary -->
+  <section>
+    <div class="kicker">07 — まとめ</div>
+    <h2>一言で言うと</h2>
+    <div class="card" style="border-color:var(--sline);background:linear-gradient(180deg,var(--soft),transparent)">
+      <p style="margin:0;color:var(--ghost);font-size:15px">Specterは、<span class="em">暗号化されていて、時間が来ると消えて、つながった人としか話せない</span>メッセージアプリ。中身の守りは有名アプリと同水準。違いは実績と監査の有無 — そこを理解した上で、気軽なプライベート用途に最適です。</p>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="t">SPECTER</div>
+  <div class="s">Messages Fade · Privacy Stays<br>Priority Creative Works</div>
+</footer>
+
+</body>
+</html>

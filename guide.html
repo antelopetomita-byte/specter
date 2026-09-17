@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Specter — 使い方ガイド</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --void:#07080b; --void-2:#0d0f15; --mist:#161b23; --line:rgba(255,255,255,.08);
+    --ghost:#eef2f0; --fade:#7b828d; --fade-2:#454c57; --spectral:#2fe7a8;
+    --soft:rgba(47,231,168,.12); --sline:rgba(47,231,168,.34); --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--void);color:var(--ghost);font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.6;overflow-x:hidden}
+  .wrap{max-width:820px;margin:0 auto;padding:0 22px}
+  .mono{font-family:"Space Mono",monospace}
+
+  /* hero */
+  .hero{text-align:center;padding:74px 22px 40px}
+  .hero .mark{width:84px;height:84px;margin:0 auto 22px;filter:drop-shadow(0 0 22px rgba(47,231,168,.25))}
+  .hero h1{font:700 40px/1 "Space Grotesk";letter-spacing:.05em}
+  .hero h1 .o{color:var(--spectral);text-shadow:0 0 20px var(--spectral)}
+  .hero .sub{font:400 12px/1 "Space Mono";letter-spacing:.34em;color:var(--fade);text-transform:uppercase;margin-top:16px}
+  .hero .lead{margin-top:22px;color:var(--fade);font-size:15px;max-width:30ch;margin-left:auto;margin-right:auto}
+
+  /* step */
+  .step{display:flex;gap:34px;align-items:center;padding:46px 0;border-top:1px solid var(--line)}
+  .step:nth-child(even){flex-direction:row-reverse}
+  .step-text{flex:1;min-width:0}
+  .num{font:700 12px/1 "Space Mono";letter-spacing:.24em;color:var(--spectral);text-transform:uppercase}
+  .step-text h2{font:600 24px/1.25 "Space Grotesk";margin:12px 0 12px;letter-spacing:-.01em}
+  .step-text p{color:var(--fade);font-size:14.5px;margin-bottom:12px}
+  .step-text ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .step-text li{position:relative;padding-left:22px;font-size:14px;color:var(--ghost)}
+  .step-text li::before{content:"";position:absolute;left:0;top:7px;width:9px;height:9px;border-radius:50%;border:2px solid var(--spectral)}
+  .step-text b{color:var(--spectral)}
+  .tip{margin-top:14px;font-size:12.5px;color:var(--fade);background:var(--void-2);border:1px solid var(--line);border-left:2px solid var(--sline);border-radius:8px;padding:10px 13px}
+  @media(max-width:640px){ .step,.step:nth-child(even){flex-direction:column;gap:22px} }
+
+  /* phone mock */
+  .phone{flex:none;width:230px;height:472px;border-radius:34px;background:#000;border:8px solid #15181d;box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.05);overflow:hidden;position:relative}
+  .phone .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:84px;height:20px;background:#000;border-radius:0 0 14px 14px;z-index:5}
+  .scr{position:absolute;inset:0;background:var(--void);display:flex;flex-direction:column;color:var(--ghost);font-size:11px}
+  .scr .sbar{height:26px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 14px 3px;font:600 9px "Space Mono";color:var(--fade)}
+  .scr .hd{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .scr .hd .t{font:600 13px "Space Grotesk"}
+  .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(150deg,#dfe6e3,#aeb8b6);color:var(--void);display:grid;place-items:center;font:700 11px "Space Grotesk";flex:none;position:relative}
+  .av.g{background:linear-gradient(150deg,#2fe7a8,#1f9d74)}
+  .av .dot{position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;border-radius:50%;background:var(--spectral);border:2px solid var(--void)}
+  .body{flex:1;padding:12px;display:flex;flex-direction:column;gap:9px;overflow:hidden}
+  .ghostbig{margin:auto;text-align:center}
+  .ghostbig svg{width:64px;height:64px;filter:drop-shadow(0 0 16px rgba(47,231,168,.3))}
+  .ghostbig .w{font:700 22px/1 "Space Grotesk";letter-spacing:.12em;margin-top:14px}
+  .ghostbig .w .o{color:var(--spectral)}
+  .ghostbig .tag{font:400 7px "Space Mono";letter-spacing:.2em;color:var(--fade);margin-top:8px}
+  .enterbtn{margin-top:18px;display:inline-block;border:1px solid var(--sline);color:var(--spectral);border-radius:20px;padding:7px 22px;font:600 10px "Space Grotesk"}
+  .field{background:var(--mist);border:1px solid var(--line);border-radius:9px;padding:9px 11px;color:var(--fade);font-size:11px}
+  .field.f{color:var(--ghost)}
+  .lbl{font:700 8px "Space Mono";letter-spacing:.16em;color:var(--fade);text-transform:uppercase;margin-bottom:-3px}
+  .pbtn{background:var(--spectral);color:#04130d;border-radius:9px;padding:10px;text-align:center;font:600 12px "Space Grotesk";margin-top:3px}
+  .gbtn{background:transparent;border:1px solid var(--line);border-radius:9px;padding:9px;text-align:center;font:600 11px "Space Grotesk";color:var(--ghost)}
+  .row{display:flex;align-items:center;gap:9px}
+  .row.b{padding:7px 0;border-bottom:1px solid var(--line)}
+  .grow{flex:1;min-width:0}
+  .nm{font:600 12px "Inter"}
+  .pv{color:var(--fade);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .badge{background:var(--spectral);color:var(--void);border-radius:9px;min-width:17px;height:17px;font:700 9px/17px "Space Mono";text-align:center;padding:0 4px}
+  .bub{max-width:78%;padding:8px 11px;border-radius:13px;font-size:11px;line-height:1.4}
+  .bub.in{align-self:flex-start;background:var(--mist);border-bottom-left-radius:4px}
+  .bub.out{align-self:flex-end;background:var(--spectral);color:#062018;border-bottom-right-radius:4px}
+  .bub.img{padding:3px;background:transparent}
+  .bub.img .im{width:120px;height:84px;border-radius:9px;background:linear-gradient(135deg,#1f3b32,#10231c);display:grid;place-items:center;color:var(--spectral)}
+  .ttlrow{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto}
+  .chip{border:1px solid var(--line);border-radius:11px;padding:4px 8px;font-size:9px;color:var(--fade)}
+  .chip.on{background:var(--spectral);color:var(--void);border-color:var(--spectral);font-weight:700}
+  .composer{display:flex;gap:6px;align-items:center;margin-top:8px}
+  .composer .ic{width:26px;height:26px;border-radius:50%;background:var(--mist);display:grid;place-items:center;color:var(--spectral);flex:none}
+  .composer .inp{flex:1;border:1px solid var(--spectral);border-radius:16px;padding:7px 11px;color:rgba(255,255,255,.6);font-size:10px}
+  .composer .snd{width:26px;height:26px;border-radius:50%;background:var(--spectral);flex:none}
+  .sheet{margin-top:auto;background:var(--void-2);border:1px solid var(--line);border-radius:14px;padding:7px}
+  .sheet .si{padding:9px;text-align:center;font:600 11px "Space Grotesk"}
+  .sheet .si.d{color:var(--danger)}
+  .center{margin:auto;text-align:center}
+  .callav{width:74px;height:74px;border-radius:50%;background:linear-gradient(150deg,#dfe6e3,#aeb8b6);color:var(--void);display:grid;place-items:center;font:700 26px "Space Grotesk";margin:0 auto;box-shadow:0 0 34px rgba(47,231,168,.25)}
+  .callbtns{display:flex;gap:26px;justify-content:center;margin-top:22px}
+  .cbtn{width:46px;height:46px;border-radius:50%;display:grid;place-items:center}
+  .cbtn.a{background:#2fe7a8} .cbtn.d{background:#ff5a5a}
+  .qr{width:108px;height:108px;margin:8px auto;border-radius:10px;background:
+     repeating-linear-gradient(90deg,#eef2f0 0 8px,transparent 8px 16px),
+     repeating-linear-gradient(0deg,#eef2f0 0 8px,#0d0f15 8px 16px);background-blend-mode:multiply;opacity:.9}
+  .pill{display:inline-block;border:1px solid var(--sline);color:var(--spectral);border-radius:20px;padding:6px 14px;font:700 9px "Space Mono";letter-spacing:.12em}
+
+  footer{text-align:center;padding:50px 22px 70px;border-top:1px solid var(--line);color:var(--fade-2)}
+  footer .t{font:600 14px "Space Grotesk";letter-spacing:.2em;color:var(--ghost)}
+  footer .s{font:400 10px/1.7 "Space Mono";letter-spacing:.1em;margin-top:8px}
+  .ghost-svg path{fill:#eef2f0}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="mark"><svg viewBox="0 0 32 32"><path fill="#eef2f0" d="M16 3c-6 0-10 4.6-10 11v13.2c0 1 0 1.8 1.1 1.3 1-.5 1.8-1.6 2.6-1.6.9 0 1.5 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.9 0 1.6 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.8 0 1.6 1.1 2.6 1.6 1.1.5 1.1-.3 1.1-1.3V14C26 7.6 22 3 16 3z"/><circle cx="12.4" cy="13.5" r="1.8" fill="#07080b"/><circle cx="19.6" cy="13.5" r="1.8" fill="#07080b"/></svg></div>
+  <h1>GH<span class="o">O</span>STS</h1>
+  <div class="sub">使い方ガイド</div>
+  <p class="lead">登録から、メッセージ・写真・グループ・通話・通知まで。はじめての人向けの手引きです。</p>
+</header>
+
+<div class="wrap">
+
+  <!-- 01 ENTER -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="body"><div class="ghostbig">
+        <svg viewBox="0 0 32 32" class="ghost-svg"><path d="M16 3c-6 0-10 4.6-10 11v13.2c0 1 0 1.8 1.1 1.3 1-.5 1.8-1.6 2.6-1.6.9 0 1.5 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.9 0 1.6 1.6 2.7 1.6 1.1 0 1.7-1.6 2.6-1.6.8 0 1.6 1.1 2.6 1.6 1.1.5 1.1-.3 1.1-1.3V14C26 7.6 22 3 16 3z"/></svg>
+        <div class="w">GH<span class="o">O</span>STS</div>
+        <div class="tag">MESSAGES FADE · PRIVACY STAYS</div>
+        <div class="enterbtn">ENTER</div>
+      </div></div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 01</span>
+      <h2>アプリを開く</h2>
+      <p>最初の画面で <b>ENTER</b> をタップしてはじめます。Specterは「消えていく会話」のためのプライベートなメッセージアプリです。</p>
+      <div class="tip">📲 iPhoneは Safari の共有 →「ホーム画面に追加」でアプリとして入れておくと、通知やアイコン表示が使えます。</div>
+    </div>
+  </section>
+
+  <!-- 02 register -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="hd"><div class="t">アカウント作成</div></div>
+      <div class="body">
+        <div class="lbl">ニックネーム</div><div class="field f">Epoch</div>
+        <div class="lbl">Ghost ID</div><div class="field f">specter_yourname</div>
+        <div class="lbl">パスワード</div><div class="field">••••••••</div>
+        <div class="pbtn">新規作成</div>
+        <div class="gbtn">ログイン</div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 02</span>
+      <h2>アカウントを作る</h2>
+      <p>電話番号もメールも不要。3つを決めるだけです。</p>
+      <ul>
+        <li><b>ニックネーム</b> — 相手に表示される名前</li>
+        <li><b>Ghost ID</b> — 自分の固有ID（ログインに使う）</li>
+        <li><b>パスワード</b> — 別の端末から入るときに必要</li>
+      </ul>
+      <div class="tip">🔑 IDとパスワードは控えておいて。別のスマホでも同じIDでログインできます（新しいIDは作られません）。</div>
+    </div>
+  </section>
+
+  <!-- 03 avatar -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="hd"><div class="t">SETTINGS</div></div>
+      <div class="body">
+        <div class="center">
+          <div class="av g" style="width:64px;height:64px;font-size:24px;margin:6px auto">E</div>
+          <div class="row" style="justify-content:center;margin-top:10px">
+            <div class="gbtn" style="padding:7px 14px">写真を選ぶ</div>
+            <div class="gbtn" style="padding:7px 14px;color:var(--danger);border-color:rgba(255,107,107,.3)">削除</div>
+          </div>
+        </div>
+        <div class="lbl" style="margin-top:8px">ニックネーム</div><div class="field f">Epoch</div>
+        <div class="lbl">GHOST ID</div><div class="field">specter_yourname</div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 03</span>
+      <h2>アイコンを設定する</h2>
+      <p>設定画面で <b>写真を選ぶ</b> をタップすると、自分のアイコンを好きな写真や画像にできます。</p>
+      <ul>
+        <li>選んだ画像は自動で小さく圧縮して保存</li>
+        <li>接続済みの相手の画面にも反映されます</li>
+        <li><b>削除</b>で文字アイコンに戻せます</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 04 invite -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="hd"><div class="t">招待</div></div>
+      <div class="body center">
+        <div class="qr"></div>
+        <div class="pill" style="margin-top:6px">招待リンクをコピー</div>
+        <p style="color:var(--fade);font-size:10px;margin-top:14px;line-height:1.5">リンクやQRを<br>渡した相手だけが<br>つながれます</p>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 04</span>
+      <h2>友達とつながる（招待制）</h2>
+      <p>Specterは<b>招待した相手だけ</b>とつながります。ID検索による無断追加はありません。</p>
+      <ul>
+        <li>設定の<b>「招待リンク / QR を開く」</b>から、リンクかQRを相手に渡す</li>
+        <li>相手がリンクを開く（またはQRを読む）と接続成立</li>
+        <li>リンクは作り直して無効化もできます</li>
+      </ul>
+      <div class="tip">🤝 つながって初めて、メッセージのやり取りができるようになります。</div>
+    </div>
+  </section>
+
+  <!-- 05 send + ttl -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="hd"><div class="av g">N<span class="dot"></span></div><div class="grow"><div class="nm">nikkou</div><div class="pv" style="color:var(--spectral)">🔒 暗号化された会話</div></div></div>
+      <div class="body">
+        <div class="bub in">やっほー</div>
+        <div class="bub out">いま電車！あと10分で着く</div>
+        <div class="bub in">りょ</div>
+        <div class="ttlrow"><span class="chip">残す</span><span class="chip on">既読後</span><span class="chip">10秒</span><span class="chip">1分</span></div>
+        <div class="composer"><div class="ic">＋</div><div class="inp">メッセージ</div><div class="snd"></div></div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 05</span>
+      <h2>メッセージと「寿命」</h2>
+      <p>Specterの核は、<b>1通ごとに消えるまでの時間（寿命）を選べる</b>こと。</p>
+      <ul>
+        <li>入力欄の上のチップで寿命を選ぶ：<b>残す / 既読後 / 10秒〜7日</b></li>
+        <li>期限が来ると、両方の画面とサーバーから粒子になって消滅</li>
+        <li>一度消えたメッセージは復元できません</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 06 photo -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="hd"><div class="av g">N<span class="dot"></span></div><div class="grow"><div class="nm">nikkou</div></div></div>
+      <div class="body">
+        <div class="bub out">これ見て！</div>
+        <div class="bub img out"><div class="im">📷</div></div>
+        <div class="bub in">いいね〜</div>
+        <div class="composer"><div class="ic">▣</div><div class="inp">メッセージ</div><div class="snd"></div></div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 06</span>
+      <h2>写真を送る</h2>
+      <p>入力欄の左の<b>画像ボタン</b>から写真を送れます。</p>
+      <ul>
+        <li>タップで端末の写真を選ぶだけ（自動で圧縮）</li>
+        <li>受け取った写真はタップで全画面表示</li>
+        <li>暗号化された会話では写真も<b>暗号化</b>されます</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 07 delete -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="hd"><div class="av g">N<span class="dot"></span></div><div class="grow"><div class="nm">nikkou</div></div></div>
+      <div class="body">
+        <div class="bub in">さっきの話だけど</div>
+        <div class="bub out">あ、それ間違えた</div>
+        <div class="sheet">
+          <div class="si">コピー</div>
+          <div class="si d">全員から削除</div>
+          <div class="si" style="color:var(--fade)">キャンセル</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 07</span>
+      <h2>メッセージを消す・コピー</h2>
+      <p>メッセージを<b>長押し</b>するとメニューが出ます。</p>
+      <ul>
+        <li><b>全員から削除</b>（自分の発言）— 相手の画面からも消える取り消し送信</li>
+        <li><b>コピー</b> — テキストをコピー</li>
+      </ul>
+      <div class="tip">🗑️ 「全員から削除」は寿命を待たずに、今すぐ全員の画面から消せます。</div>
+    </div>
+  </section>
+
+  <!-- 08 read/unread -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="hd"><div class="t">SPECTER</div><div class="grow"></div><div class="av" style="width:24px;height:24px;font-size:9px">E</div></div>
+      <div class="body">
+        <div class="row b"><div class="av g">N</div><div class="grow"><div class="nm">nikkou</div><div class="pv">🔒 メッセージ</div></div><div class="badge">2</div></div>
+        <div class="row b"><div class="av">R</div><div class="grow"><div class="nm">ryo</div><div class="pv">了解！</div></div></div>
+        <div class="row b"><div class="av g" style="background:linear-gradient(150deg,#2fe7a8,#1f9d74)">👥</div><div class="grow"><div class="nm">チーム</div><div class="pv">既読 3</div></div><div class="badge">5</div></div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 08</span>
+      <h2>既読と未読</h2>
+      <p>一覧では、未読のある会話に<b>エメラルドの件数バッジ</b>が付きます（開くと消えます）。</p>
+      <ul>
+        <li>DMは「<b>既読＋時刻</b>」を表示</li>
+        <li>グループは「<b>既読 N</b>」をタップで<b>誰が読んだか</b>一覧</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 09 group -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="hd"><div class="t">New Group</div></div>
+      <div class="body">
+        <div class="lbl">グループ名</div><div class="field f">チーム</div>
+        <div class="lbl">メンバーを選択</div>
+        <div class="row b"><div class="av">N</div><div class="grow nm">nikkou</div><div style="color:var(--spectral)">●</div></div>
+        <div class="row b"><div class="av">R</div><div class="grow nm">ryo</div><div style="color:var(--spectral)">●</div></div>
+        <div class="row b"><div class="av">K</div><div class="grow nm">kenta</div><div style="color:var(--fade-2)">○</div></div>
+        <div class="pbtn" style="margin-top:6px">グループを作成</div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 09</span>
+      <h2>グループを作る</h2>
+      <p>一覧の右上の<b>👥＋</b>から、つながっている相手を選んでグループを作れます。</p>
+      <ul>
+        <li>送信者の名前を表示、寿命や既読もグループで使える</li>
+        <li>ヘッダーをタップで<b>メンバー追加・退出</b></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 10 call -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="body" style="justify-content:center">
+        <div class="center">
+          <div class="callav">N</div>
+          <div style="font:600 16px 'Space Grotesk';margin-top:14px">nikkou</div>
+          <div style="font:400 9px 'Space Mono';letter-spacing:.18em;color:var(--spectral);margin-top:8px">通話中</div>
+          <div style="font:400 10px 'Space Mono';color:var(--fade);margin-top:6px">0:42</div>
+          <div class="callbtns">
+            <div class="cbtn" style="background:var(--mist)">🎙️</div>
+            <div class="cbtn d">📞</div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 10</span>
+      <h2>音声通話</h2>
+      <p>DMのヘッダーの<b>電話アイコン</b>から、1対1の音声通話ができます（番号不要・無料）。</p>
+      <ul>
+        <li>相手には着信画面が出て、<b>応答／拒否</b></li>
+        <li>通話中は<b>ミュート</b>・<b>終了</b>、通話時間を表示</li>
+        <li>初回はマイクの<b>許可</b>が必要です</li>
+      </ul>
+      <div class="tip">📶 アプリを開いている間に着信します。ネットワークによっては繋がりにくい場合があります。</div>
+    </div>
+  </section>
+
+  <!-- 11 notifications -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="hd"><div class="t">SETTINGS</div></div>
+      <div class="body">
+        <div class="lbl">通知</div>
+        <div class="row b"><div class="grow nm">アイコンに未読バッジを表示</div><div class="gbtn" style="padding:6px 12px;color:var(--spectral);border-color:var(--sline)">有効</div></div>
+        <p style="color:var(--fade);font-size:10px;line-height:1.5;margin-top:6px">ホーム画面に追加したアプリで、未読数や新着の通知を受け取れます（iOS 16.4+）。</p>
+        <div class="row b" style="margin-top:10px"><div class="grow nm" style="color:var(--danger)">ログアウト</div></div>
+        <div style="text-align:center;font:400 8px 'Space Mono';color:var(--fade-2);margin-top:10px">SPECTER · build</div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 11</span>
+      <h2>通知を有効にする</h2>
+      <p>設定の「通知」で<b>有効にする</b>を押し、通知を<b>許可</b>すると、アプリを閉じていても新着が届きます。</p>
+      <ul>
+        <li>まず<b>ホーム画面にアプリを追加</b>（iOSの必須条件）</li>
+        <li>アイコンに<b>未読バッジ</b>、新着で<b>通知</b></li>
+      </ul>
+      <div class="tip">🔔 通知は内容を出さず「新しいメッセージ」とだけ表示します（プライバシー保護のため）。</div>
+    </div>
+  </section>
+
+  <!-- 12 privacy -->
+  <section class="step">
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sbar"><span>9:41</span><span>5G</span></div>
+      <div class="body" style="justify-content:center">
+        <div class="center">
+          <div style="font-size:34px">🔒</div>
+          <div style="font:600 14px 'Space Grotesk';margin-top:12px">end-to-end</div>
+          <p style="color:var(--fade);font-size:10px;line-height:1.6;margin-top:10px">DMのメッセージと写真は<br>暗号化されて届きます<br><br>消えた会話は<br>誰も復元できません</p>
+        </div>
+      </div>
+    </div></div>
+    <div class="step-text">
+      <span class="num">Step 12</span>
+      <h2>プライバシーの仕組み</h2>
+      <ul>
+        <li><b>DMは暗号化</b> — テキストも写真も、端末の鍵で暗号化（サーバーは中身を持ちません）</li>
+        <li><b>消えたら復元不可</b> — 寿命や削除で消えた会話は元に戻せません</li>
+        <li><b>接続済みの相手だけ</b> — つながっていない人は会話に触れられません</li>
+      </ul>
+      <div class="tip">ℹ️ 秘密鍵は端末内にのみ保存。端末を変えると過去の暗号メッセージは読めなくなります（E2EEの性質）。</div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="t">SPECTER</div>
+  <div class="s">Nothing Stays Forever<br>Priority Creative Works</div>
+</footer>
+
+</body>
+</html>

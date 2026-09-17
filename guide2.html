@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Specter 操作＆セキュリティ仕様書</title>
+<style>
+  :root{
+    --void:#07080b; --ink:#0d0f14; --card:#0f1319; --line:#1b2026; --fade:#8a93a0;
+    --ghost:#eef2f6; --spectral:#2fe7a8; --amber:#ffcf5c; --red:#ff8f8f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--void);color:var(--ghost);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Inter",sans-serif;
+    line-height:1.85;padding:0 0 90px;font-size:16px}
+  .wrap{max-width:740px;margin:0 auto;padding:0 22px}
+  header{padding:60px 22px 34px;text-align:center;border-bottom:1px solid var(--line);
+    background:radial-gradient(1000px 360px at 50% -30%,rgba(47,231,168,.15),transparent)}
+  .logo{width:70px;height:70px;border-radius:20px;background:linear-gradient(160deg,#0d1116,#05070a);
+    border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 16px;font-size:36px;
+    box-shadow:0 0 46px rgba(47,231,168,.18)}
+  .tag{font-family:"Courier New",monospace;font-size:11px;letter-spacing:.32em;color:var(--spectral);text-transform:uppercase}
+  h1{font-size:31px;margin:12px 0 8px;letter-spacing:-.01em}
+  .sub{color:var(--fade);font-size:15px;max-width:560px;margin:0 auto}
+  h2{font-size:22px;margin:48px 0 6px;display:flex;align-items:center;gap:11px}
+  h2 .n{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:11px;
+    background:var(--spectral);color:#04130d;font-size:16px;font-weight:800;flex:none}
+  h3{font-size:17px;margin:24px 0 6px}
+  .lead{color:var(--fade);font-size:14.5px;margin:2px 0 10px}
+  p{margin:9px 0}
+  section{padding-top:6px}
+  ol.num{counter-reset:s;padding-left:0;list-style:none;margin:10px 0}
+  ol.num li{counter-increment:s;padding-left:42px;position:relative;margin:13px 0}
+  ol.num li:before{content:counter(s);position:absolute;left:0;top:-2px;width:29px;height:29px;
+    border-radius:9px;background:var(--spectral);color:#04130d;display:grid;place-items:center;font-weight:800;font-size:14px}
+  ul.clean{padding-left:0;margin:8px 0;list-style:none}
+  ul.clean li{padding-left:24px;position:relative;margin:9px 0}
+  ul.clean li:before{content:"›";position:absolute;left:8px;color:var(--spectral);font-weight:700}
+  .chip{display:inline-block;background:rgba(47,231,168,.12);border:1px solid rgba(47,231,168,.3);
+    color:var(--spectral);border-radius:8px;padding:1px 9px;font-size:14px;font-weight:600;margin:0 2px;white-space:nowrap}
+  .key{display:inline-block;background:#11151b;border:1px solid var(--line);border-radius:7px;padding:1px 8px;font-size:14px;font-family:"Courier New",monospace}
+  .why{border:1px solid rgba(47,231,168,.28);border-radius:14px;padding:13px 16px;background:rgba(47,231,168,.05);margin:12px 0}
+  .why .h{font-weight:700;color:var(--spectral);font-size:13px;letter-spacing:.02em;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+  .why .h:before{content:"🛡";font-size:14px}
+  .why p{margin:4px 0;font-size:14px;color:#d4dae1}
+  .card{border:1px solid var(--line);border-radius:16px;padding:16px 18px;background:var(--card);margin:14px 0}
+  .warn{border-left:3px solid var(--amber)}
+  .danger{border-left:3px solid var(--red)}
+  .good{border-left:3px solid var(--spectral)}
+  .tbl{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .tbl th,.tbl td{padding:11px 9px;text-align:center;border-bottom:1px solid var(--line)}
+  .tbl th{background:#0f1318;font-weight:700;font-size:12px}
+  .tbl td:first-child,.tbl th:first-child{text-align:left}
+  .tbl tr:last-child td{border-bottom:none}
+  .yes{color:var(--spectral);font-weight:700} .no{color:var(--red)} .mid{color:var(--amber)}
+  .scol{background:rgba(47,231,168,.06)}
+  .me{color:var(--spectral);font-weight:700}
+  .ttl-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+  .ttl-list .row{display:flex;gap:12px;align-items:baseline;border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--card)}
+  .ttl-list .row .lbl{color:var(--spectral);font-weight:700;min-width:100px;flex:none}
+  .faq{border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden;background:var(--card)}
+  .faq summary{padding:14px 18px;cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary:after{content:"+";color:var(--spectral);font-size:20px}
+  .faq[open] summary:after{content:"−"}
+  .faq .body{padding:0 18px 16px;color:#d4dae1;font-size:14.5px}
+  .foot{margin-top:46px;padding-top:20px;border-top:1px solid var(--line);color:var(--fade);font-size:12.5px;text-align:center}
+  b{font-weight:700}.em{color:var(--spectral);font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">👻</div>
+  <div class="tag">Operation &amp; Security Guide</div>
+  <h1>Specter 操作＆セキュリティ仕様書</h1>
+  <p class="sub">登録から使い方まで、そして「なぜ他のアプリより安全なのか」を、予備知識ゼロでわかるようにまとめました。</p>
+</header>
+
+<div class="wrap">
+
+  <!-- 0. Why Specter -->
+  <section>
+    <h2><span class="n">◎</span>まず：Specterの何がすごい？</h2>
+    <p>世の中の有名アプリ（Signal・WhatsApp・Telegram）は、どれも <b>電話番号がないと使えません</b>。電話番号は「あなたが誰か」に直結する情報です。Specterは、そこが根本的に違います。</p>
+    <div class="why">
+      <div class="h">Specter 最大の強み</div>
+      <p><b class="em">電話番号もメールも一切いらない。</b>ランダムなIDだけで使えます。だから「誰が使っているか」を運営にも他人にも知られません。有名アプリはすべて電話番号が必須で、ここはSpecterが明確に上回る点です。</p>
+    </div>
+    <table class="tbl">
+      <tr><th>比べるポイント</th><th>Signal</th><th>WhatsApp</th><th>Telegram</th><th class="scol">Specter</th></tr>
+      <tr><td>電話番号なしで使える</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="scol me">✓</td></tr>
+      <tr><td>最初から全部暗号化</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗ 手動のみ</td><td class="scol me">✓</td></tr>
+      <tr><td>メッセージが消える設計</td><td class="mid">任意</td><td class="mid">限定</td><td class="mid">秘密チャット</td><td class="scol me">標準</td></tr>
+      <tr><td>運営が中身を読めない</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗ 既定は読める</td><td class="scol me">✓</td></tr>
+      <tr><td>運営</td><td>非営利</td><td>Meta（広告）</td><td>Telegram社</td><td class="scol me">個人</td></tr>
+    </table>
+    <p class="lead">※ Telegramは「暗号化アプリ」の印象がありますが、<b>普通のチャットは暗号化されておらず、Telegramのサーバーが中身を読めます</b>。E2EEは手動の「シークレットチャット」だけ。ここは多くの人が誤解しています。</p>
+    <div class="card warn"><b>正直な補足：</b>Signalは第三者機関の監査を何度も受けた「最高基準」です。Specterは個人開発で監査は未実施。<b>命に関わる極秘連絡はSignal</b>、<b>身元を明かさず気軽に使うならSpecter</b>、という住み分けが誠実な使い方です。</div>
+  </section>
+
+  <!-- 1. register -->
+  <section>
+    <h2><span class="n">1</span>登録する（30秒）</h2>
+    <p class="lead">名前も電話番号もいりません。</p>
+    <ol class="num">
+      <li>ブラウザ（iPhoneは<b>Safari</b>、Androidは<b>Chrome</b>）でSpecterのリンクを開く</li>
+      <li>最初の画面で <span class="chip">ENTER</span> を押す</li>
+      <li><span class="chip">新規作成</span> を選ぶ</li>
+      <li>ニックネームは<b>任意</b>（空ならIDが表示名に）</li>
+      <li>パスワードを決める</li>
+      <li>あなた専用の <span class="key">specter_〇〇〇</span> が発行されて完了</li>
+    </ol>
+    <div class="why">
+      <div class="h">ここが安全な理由</div>
+      <p>登録に個人情報を一切使わないので、<b>アカウントとあなたの実生活が結びつきません</b>。有名アプリのように「電話番号から身元をたどる」ことができない設計です。</p>
+    </div>
+    <div class="card danger"><b>大切：IDとパスワードは必ず控える。</b>これは、スマホを変えたときに<b>同じ自分に戻る唯一の鍵</b>です。忘れると同じアカウントに戻れません（＝別人になる）。設定画面で確認できます。</div>
+  </section>
+
+  <!-- 2. install -->
+  <section>
+    <h2><span class="n">2</span>アプリにする（ホーム画面に追加）</h2>
+    <p class="lead">ホーム画面に置くと普通のアプリのように使え、通知も受け取れます。</p>
+    <h3>iPhone（Safari）</h3>
+    <ol class="num">
+      <li>下の<b>共有ボタン</b>を押す</li>
+      <li><span class="chip">ホーム画面に追加</span> を選ぶ</li>
+      <li>できた👻アイコンから起動</li>
+    </ol>
+    <h3>Android（Chrome）</h3>
+    <ol class="num">
+      <li>右上の<b>⋮メニュー</b>を押す</li>
+      <li><span class="chip">アプリをインストール</span> を選ぶ</li>
+      <li>できたアイコンから起動</li>
+    </ol>
+    <div class="why">
+      <div class="h">ここが便利な理由</div>
+      <p>Specterはインストール型の巨大アプリではなく、<b>ブラウザで動く軽量アプリ</b>。ストア審査も不要で、<b>更新は開くだけで自動</b>。あなたが入れ直す手間はありません。</p>
+    </div>
+    <div class="card warn"><b>注意：</b>LINEやSNSの中のブラウザではうまく動きません。必ず<b>SafariかChrome</b>で開いてください。</div>
+  </section>
+
+  <!-- 3. connect -->
+  <section>
+    <h2><span class="n">3</span>友達とつながる</h2>
+    <p class="lead">「招待リンク」か「QRコード」でつながります。電話番号での検索はありません。</p>
+    <h3>招待する側</h3>
+    <ol class="num">
+      <li>設定（⚙️）→ <span class="chip">招待リンク / QR を開く</span></li>
+      <li>リンクを相手に送る／QRを見せる</li>
+      <li>相手がつなぐと、お互いの一覧に表示</li>
+    </ol>
+    <h3>招待される側</h3>
+    <ol class="num">
+      <li>届いたリンクを開く／QRを読み取る</li>
+      <li>案内にそって<b>つなぐ</b></li>
+    </ol>
+    <div class="why">
+      <div class="h">ここが安全な理由</div>
+      <p>ID検索や電話帳の自動照合が<b>ありません</b>。あなたが<b>リンクやQRを渡した相手とだけ</b>つながるので、知らない人から勝手に見つかることがない。会話を開いてヘッダーに <span class="chip">🔒 暗号化された会話</span> と出れば、安全に使える合図です。</p>
+    </div>
+  </section>
+
+  <!-- 4. send -->
+  <section>
+    <h2><span class="n">4</span>メッセージを送る</h2>
+    <ol class="num">
+      <li>相手を選んで会話を開く</li>
+      <li>入力欄に文字を打つ（😊で絵文字も）</li>
+      <li><b>消えるまでの時間</b>を選ぶ（下の表）</li>
+      <li>送信ボタン（▶）で送る</li>
+    </ol>
+    <h3>消えるまでの時間</h3>
+    <div class="ttl-list">
+      <div class="row"><span class="lbl">残す</span><span>消えません。</span></div>
+      <div class="row"><span class="lbl">既読後24h</span><span>読まれてから24時間後に消える（おすすめ標準）。</span></div>
+      <div class="row"><span class="lbl">既読後</span><span>読まれてすぐ消える。</span></div>
+      <div class="row"><span class="lbl">10秒〜10分</span><span>送ってから決めた時間で消える。</span></div>
+    </div>
+    <h3>できること</h3>
+    <ul class="clean">
+      <li><b>写真</b>（暗号化されます）／<b>リアクション</b>（長押しで 👍❤️😂）／<b>削除</b>（自分の投稿を長押し）</li>
+      <li><b>音声通話</b>（会話上部の電話マーク・Specter同士・無料・暗号化）</li>
+    </ul>
+    <div class="why">
+      <div class="h">ここが安全な理由</div>
+      <p>送る前に端末の中で暗号化され、<b>相手の端末でだけ元に戻ります</b>。途中のサーバーには暗号文しか流れず、運営も開発者も中身を読めません。写真も通話も同じ。しかも<b>消える設計が標準</b>なので、記録が積み上がりません。</p>
+    </div>
+  </section>
+
+  <!-- 5. notif -->
+  <section>
+    <h2><span class="n">5</span>通知を受け取る</h2>
+    <ol class="num">
+      <li>設定（⚙️）を開く</li>
+      <li>「通知（バナー＋未読バッジ）」を <span class="chip">オン</span>（緑）に</li>
+      <li>「許可しますか？」で<b>許可</b>／不安なら <span class="chip">通知テスト</span> で確認</li>
+    </ol>
+    <div class="card warn"><b>iPhoneの注意：</b>iPhoneのホーム画面アプリの通知は、Appleの仕様で<b>ときどき遅れる・届かないことがあります</b>（不具合ではありません）。メッセージはアプリを開けば必ず読めます。Androidの方が通知は安定します。</div>
+  </section>
+
+  <!-- security deep -->
+  <section>
+    <h2><span class="n">🔐</span>セキュリティの中身（やさしく）</h2>
+    <ul class="clean">
+      <li><b>端末間で暗号化（E2EE）：</b>あなたと相手の端末だけが鍵を持ち、途中は誰も読めません。</li>
+      <li><b>秘密鍵は取り出し不可：</b>暗号を解く鍵は端末の奥に「持ち出せない形」で保管。乗っ取られても鍵の中身を盗めません。</li>
+      <li><b>なりすまし・改ざん防止：</b>他人になりすまして送ったり、送信済みメッセージを書き換えたりできない仕組み。</li>
+      <li><b>暗号化できない時は送らない：</b>安全に送れない状況では、平文で送らず「送信できません」と止まります。</li>
+      <li><b>通話は絵文字で本人確認：</b>通話中に表示される絵文字が両者で一致すれば、盗聴されていない証明になります。</li>
+    </ul>
+    <div class="card danger"><b>「消える」の正しい理解：</b>これはSpecterに限らず全アプリ共通ですが、<b>相手がスクショや別カメラで撮れば残せます</b>。「消える」はサーバーとアプリ表示から消える、という意味。信頼できる相手との間で余計な記録を残さないための機能です。</div>
+    <div class="card warn"><b>正直な限界：</b>①前方秘匿性（鍵が漏れても過去を守る仕組み）は未実装。②第三者監査は未実施。この2点はSignalが上です。Specterは「無料・個人開発として上位、匿名性は大手超え」という位置づけです。</div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <h2><span class="n">?</span>よくある質問</h2>
+    <details class="faq"><summary>本当に無料？</summary><div class="body">無料です。データ通信を使うだけで通話料等はかかりません。</div></details>
+    <details class="faq"><summary>電話番号は本当にいらない？</summary><div class="body">いりません。ここが有名アプリとの最大の違いです。Signal・WhatsApp・Telegramは全て電話番号が必須です。</div></details>
+    <details class="faq"><summary>「🔒 復号できません」と出た</summary><div class="body">相手がアカウントを作り直したなどで鍵が合わなくなったサイン。連絡先をお互い削除して招待リンクでつなぎ直すと直ります。昔のメッセージは安全のため戻せません。</div></details>
+    <details class="faq"><summary>スマホを変えたら？</summary><div class="body">新しい端末で <span class="chip">ログイン</span> を選び、控えたGhost IDとパスワードを入力。「新規作成」だと別人になるので注意。</div></details>
+    <details class="faq"><summary>更新は必要？</summary><div class="body">不要。開くたびに自動で最新版になります。</div></details>
+    <details class="faq"><summary>相手がAndroid／iPhoneでも使える？</summary><div class="body">使えます。相手の機種は関係ありません。</div></details>
+  </section>
+
+  <div class="foot">
+    Specter 操作＆セキュリティ仕様書<br>
+    電話番号不要・端末間で暗号化・消える設計<br>
+    ※ 他アプリの仕様は2026年の各社公開情報に基づく。Specterの評価は自己申告で第三者監査は未実施。
+  </div>
+</div>
+</body>
+</html>
